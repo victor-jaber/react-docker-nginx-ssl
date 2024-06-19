@@ -1,0 +1,60 @@
+version: "3.8"
+#Para servidor Linux
+services:
+  nginx:
+    build:
+      context: ./
+      args:
+          NGINX_VERSION: '1.25.2'
+          # https://hub.docker.com/_/nginx
+    image: yourusernamedockerhub/nginx
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+        - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+        - ./nginx/sites-available:/etc/nginx/sites-available
+        - ./nginx/conf.d:/etc/nginx/conf.d
+        - ./nginx/letsencrypt:/etc/letsencrypt
+      - ./react-app/build:/usr/share/nginx/html  # Volume atualizado para onde o build do react será exportado
+    networks:
+      - net_swarm
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 20M
+      restart_policy:
+        condition: on-failure
+
+  react-app:
+      build:
+        context: ./my-app  # Certifique-se de que este caminho está correto
+        dockerfile: Dockerfile
+      image: react-app
+      environment:
+        - NODE_ENV=production
+      volumes:
+        - ./react-app/build:/usr/share/nginx/html # Aqui ele pega o build que é obrigatório a ser gerado e manda para o container
+      networks:
+        - net_swarm
+      deploy: #tudo isso pode ser alterado conforme a necessidade de uso 
+        replicas: 1
+        resources:
+          limits:
+            cpus: "1"
+            memory: 512M
+          reservations:
+            cpus: "0.25"
+            memory: 50M
+        restart_policy:
+          condition: on-failure
+
+networks:
+  net_swarm:
+    external: true
+    name: net_swarm
